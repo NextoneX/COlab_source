@@ -1,0 +1,5 @@
+.vscode/
+*.zip
+2_BRAMInputFileGenerator/
+2_Simulation/
+3_CacheLab/
