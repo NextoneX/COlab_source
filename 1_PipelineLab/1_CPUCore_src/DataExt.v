@@ -11,7 +11,7 @@
 module DataExt(
     input wire [31:0] IN,
     input wire [1:0] LoadedBytesSelect,
-    input wire [2:0] RegWriteW,
+    input wire [2:0] RegWriteMW,
     output reg [31:0] OUT
     );    
     
@@ -19,7 +19,7 @@ module DataExt(
     //?
     assign tar_byte = IN >> (LoadedBytesSelect * 8);
     always @(*) begin
-        case (RegWrite)
+        case (RegWriteMW)
            `LB:     OUT <= {{24{tar_byte[7]}}, tar_byte[7:0]};
            `LH:     OUT <= {{16{tar_byte[15]}}, tar_byte[15:0]};
            `LW:     OUT <= IN;
