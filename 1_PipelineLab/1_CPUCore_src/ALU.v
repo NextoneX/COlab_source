@@ -14,26 +14,24 @@ module ALU(
     output reg [31:0] AluOut
     );
     
-    initial begin
-        AluOut = 32'b0;
-    end
+    //ALU no need to modify, copy from lab1
+    // initial begin
+    //     AluOut = 32'b0;
+    // end
 
     always @(*) begin
         case (AluContrl)
             `SLL:       AluOut <= Operand1 << Operand2[4:0];
             `SRL:       AluOut <= Operand1 >> Operand2[4:0];
             `SRA:       AluOut <= $signed(Operand1) >>> Operand2[4:0];
-            // $signed设置为有符号数，>>>做符号扩展
             `ADD:       AluOut <= Operand1 + Operand2;
             `SUB:       AluOut <= Operand1 - Operand2;
             `XOR:       AluOut <= Operand1 ^ Operand2;
             `OR:        AluOut <= Operand1 | Operand2;
             `AND:       AluOut <= Operand1 & Operand2;
             `SLT:       AluOut <= ($signed(Operand1) < $signed(Operand2)) ? 32'b1 : 32'b0;
-            // 做带符号比较
             `SLTU:      AluOut <= (Operand1 < Operand2) ? 32'b1 : 32'b0;
             `LUI:       AluOut <= Operand2;
-            // 直接使用传入的立即数
             default:    AluOut <= 32'hxxxxxxxx;                          
         endcase
     end

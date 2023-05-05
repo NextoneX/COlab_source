@@ -15,28 +15,19 @@ module DataExt(
     output reg [31:0] OUT
     );    
     
-    reg [31:0] tmp;
-    
-   initial begin
-       OUT = 32'b0;
-   end
-   
-   always@(*) begin
-       case(RegWriteW)
-           `LB: begin
-                   tmp <= IN >> (LoadedBytesSelect*8);
-                   OUT <= { {24{tmp[7]}}, tmp[7:0] };
-                end
-           `LH: begin
-                   tmp <= IN >> (LoadedBytesSelect*8);
-                   OUT <= { {16{tmp[15]}}, tmp[15:0] };
-                end
-           `LW:    OUT <= IN;
-           `LBU:   OUT <= (IN >> (LoadedBytesSelect*8)) & 32'hff;
-           `LHU:   OUT <= (IN >> (LoadedBytesSelect*8)) & 32'hffff;
-           default:OUT <= 32'b0; 
-       endcase
-   end
+    wire [31:0] tar_byte;
+    //?
+    assign tar_byte = IN >> (LoadedBytesSelect * 8);
+    always @(*) begin
+        case (RegWrite)
+           `LB:     OUT <= {{24{tar_byte[7]}}, tar_byte[7:0]};
+           `LH:     OUT <= {{16{tar_byte[15]}}, tar_byte[15:0]};
+           `LW:     OUT <= IN;
+           `LBU:    OUT <= {24'b0, tar_byte[7:0]};
+           `LHU:    OUT <= {16'b0, tar_byte[15:0]};
+           default: OUT <= 32'b0;                          
+        endcase
+    end
     
 endmodule
 

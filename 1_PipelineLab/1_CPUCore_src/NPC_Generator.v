@@ -11,23 +11,14 @@ module NPC_Generator(
     input wire BranchE,JalD,JalrE,
     output reg [31:0] PC_In
     );
-    
-    initial begin
-        PC_In = 32'b0;
-    end
-    
-    always@(*) begin
-        if(JalrE == 1)
-            PC_In <= JalrTarget;
-        else if(BranchE == 1)
-            PC_In <= BranchTarget;
-        else if(JalD == 1)
-            PC_In <= JalTarget;
-        else
-            PC_In <= PCF + 32'd4;
-    end
-    
-endmodule
+
+    always@ (*) begin
+        PC_In <= (BranchE == 1'b1)?(BranchTarget):
+                    ((JalrE == 1'b1)?(JalrTarget):
+                    ((JalD == 1'b1)?(JalTarget):
+                    (PCF + 32'd4)));
+    end  
+endmodule  
 
 //功能说明
     //NPC_Generator是用来生成Next PC值得模块，根据不同的跳转信号选择不同的新PC值

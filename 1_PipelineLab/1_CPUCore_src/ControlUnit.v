@@ -26,198 +26,165 @@ module ControlUnit(
     output reg [2:0] ImmType        
     );
     
-    initial begin
-        RegWriteD = 3'b0;
-        MemWriteD = 4'b0;
-        RegReadD = 2'b0;
-        BranchTypeD = 3'b0;
-        AluContrlD = 4'b0;
-
-        JalD = 0;
-        JalrD = 0;
-        MemToRegD = 0;
-        LoadNpcD = 0;
-    end
-    
-    always@(*) begin
-        case(Op) 
-            `JL: begin
-                JalD <= 1;
-                JalrD <= 0;
-                LoadNpcD <= 1;        
+    //J-type jal,jalr,loadnpc
+    always @(*) begin
+        case (Op)
+            7'b1101111:  begin
+                JalD <= 1'b1;
+                JalrD <= 1'b0;  
+                LoadNpcD <= 1'b1;    
             end
-            `JLR: begin
-                JalD <= 0;
-                JalrD <= 1;
-                LoadNpcD <= 1;   
+            7'b1100111:  begin
+                JalD <= 1'b0;
+                JalrD <= 1'b1;  
+                LoadNpcD <= 1'b1;    
             end
-            default: begin
-                JalD <= 0;
-                JalrD <= 0;
-                LoadNpcD <= 0;    
-            end
+            default:  begin
+                JalD <= 1'b0;
+                JalrD <= 1'b0;  
+                LoadNpcD <= 1'b0;    
+            end                          
         endcase
     end
     
-    always@(*) begin
-        if(Op == `BR) begin
-            case(Fn3)
-                3'b000: BranchTypeD <= `BEQ;
-                3'b001: BranchTypeD <= `BNE;
-                3'b100: BranchTypeD <= `BLT;
-                3'b101: BranchTypeD <= `BGE;
-                3'b110: BranchTypeD <= `BLTU;
-                3'b111: BranchTypeD <= `BGEU;
-                default:BranchTypeD <= `NOBRANCH;
-            endcase
-        end
-        else
-            BranchTypeD <= `NOBRANCH;
-    end
-
-    always@(*) begin
-        case(Op)
-            `NIMM:  RegWriteD <= `LW;
-            `IMM:   RegWriteD <= `LW;
-            `LUIOP: RegWriteD <= `LW; 
-            `AUIPC: RegWriteD <= `LW;
-            `LD:    begin
-                    case(Fn3)
-                        3'b000: RegWriteD <= `LB;
-                        3'b001: RegWriteD <= `LH;
-                        3'b010: RegWriteD <= `LW;
-                        3'b100: RegWriteD <= `LBU;
-                        3'b101: RegWriteD <= `LHU;
-                    endcase
-            end
-            `ST:    RegWriteD <= `NOREGWRITE;
-            `BR:    RegWriteD <= `NOREGWRITE; 
-            `JL:    RegWriteD <= `LW;
-            `JLR:   RegWriteD <= `LW;
-            default:RegWriteD <= `NOREGWRITE;
+    //RegWrite
+    always @(*) begin
+        case (Op) 
+            7'b0110011, 7'b0010011, 7'b0110111, 7'b0010111, 7'b1101111, 7'b1100111:
+                RegWriteD <= `LW;
+            7'b0100011, 7'b1100011:     
+                RegWriteD <= `NOREGWRITE; 
+            7'b0000011: begin
+                case(Fn3)
+                    3'b000:     RegWriteD <= `LB;
+                    3'b001:     RegWriteD <= `LH;
+                    3'b010:     RegWriteD <= `LW;
+                    3'b100:     RegWriteD <= `LBU;
+                    3'b101:     RegWriteD <= `LHU;
+                    default:    RegWriteD <= `NOREGWRITE;
+                endcase    
+            end   
+            default:    RegWriteD <= `NOREGWRITE;             
         endcase
     end
-
-    always@(*) begin
-        if(Op == `ST) begin
-            case(Fn3)
-            3'b000: MemWriteD <= 4'b0001;
-            3'b001: MemWriteD <= 4'b0011;
-            3'b010: MemWriteD <= 4'b1111;
-            default:MemWriteD <= 4'b0000;
-            endcase
-        end
-        else    
-            MemWriteD <= 4'b0000;
-    end
-
-    always@(*) begin
-        if(Op == `IMM || Op == `NIMM) begin
-            case(Fn3)
-                3'b000: begin
-                    if(Op == `NIMM && Fn7 == 7'b0100000)
-                        AluContrlD <= `SUB;
-                    else
-                        AluContrlD <= `ADD;
-                end
-                3'b100: AluContrlD <= `XOR;
-                3'b110: AluContrlD <= `OR;
-                3'b111: AluContrlD <= `AND;
-                3'b001: AluContrlD <= `SLL;
-                3'b101: begin
-                    if(Fn7 == 7'b0000000)
-                        AluContrlD <= `SRL;
-                    else
-                        AluContrlD <= `SRA;
-                end
-                3'b010: AluContrlD <= `SLT;
-                3'b011: AluContrlD <= `SLTU;
-                default
-                    AluContrlD <= 4'hx;
-            endcase
-            end
-            else if(Op == `LUIOP)
-                AluContrlD <= `LUI;
-            else
-                AluContrlD <= `ADD;
-    end
-
-    always@(*) begin
-        case(Op)
-            `NIMM:  begin
-                AluSrc1D <= 1'b0;
-                AluSrc2D <= 2'b00;
-            end
-            `IMM:   begin
-                AluSrc1D <= 1'b0;
-                if(Fn3 == 3'b101 || Fn3 == 3'b001)
-                    AluSrc2D <= 2'b01;
-                else
-                    AluSrc2D <= 2'b10;
-            end
-            `LUIOP: begin
-                AluSrc1D <= 1'b0;
-                AluSrc2D <= 2'b10;
-            end
-            `AUIPC: begin
-                AluSrc1D <= 1'b1;
-                AluSrc2D <= 2'b10;
-            end
-            `LD:    begin
-                AluSrc1D <= 1'b0;
-                AluSrc2D <= 2'b10;
-            end
-            `ST:    begin
-                AluSrc1D <= 1'b0;
-                AluSrc2D <= 2'b10;
-            end
-            `BR:    begin
-                AluSrc1D <= 1'b0;
-                AluSrc2D <= 2'b00;
-            end
-            `JL:    begin
-                AluSrc1D <= 1'b0;
-                AluSrc2D <= 2'b00;
-            end
-            `JLR:   begin
-                AluSrc1D <= 1'b0;
-                AluSrc2D <= 2'b10;
-            end
-        endcase
-    end
-
-    always@(*) begin
-        if(Op == `LD)
+    
+    //MemToReg
+    always @(*) begin
+        if (Op == 7'b0000011)  
             MemToRegD <= 1'b1;
         else
             MemToRegD <= 1'b0;
     end
     
-    always@(*) begin
-        case(Op)
-            `NIMM:  ImmType <= `RTYPE;
-            `IMM:   ImmType <= `ITYPE;
-            `LUIOP: ImmType <= `UTYPE;
-            `AUIPC: ImmType <= `UTYPE;
-            `LD:    ImmType <= `ITYPE;
-            `ST:    ImmType <= `STYPE;
-            `BR:    ImmType <= `BTYPE;
-            `JL:    ImmType <= `JTYPE;
-            `JLR:   ImmType <= `ITYPE;
+    //MemWrite
+    always @(*) begin
+        if (Op == 7'b0100011) begin
+            case(Fn3)
+                3'b000:     MemWriteD <= 4'b0001;
+                3'b001:     MemWriteD <= 4'b0011;
+                3'b010:     MemWriteD <= 4'b1111;
+                default:    MemWriteD <= 4'b0000;
+            endcase                     
+        end
+        else 
+            MemWriteD <= 4'b0000;
+    end
+    
+    //RegRead
+    always @(*) begin
+        case (Op)
+            7'b0110011:     RegReadD <= 2'b11;
+            7'b0010011:     RegReadD <= 2'b10;
+            7'b0110111:     RegReadD <= 2'b00; 
+            7'b0010111:     RegReadD <= 2'b00;
+            7'b0000011:     RegReadD <= 2'b10;
+            7'b0100011:     RegReadD <= 2'b11;
+            7'b1100011:     RegReadD <= 2'b11; 
+            7'b1101111:     RegReadD <= 2'b00; 
+            7'b1100111:     RegReadD <= 2'b10;              
         endcase
     end
-
+    
+    //BranchType
+    always @(*) begin
+        if (Op == 7'b1100011)begin
+            case (Fn3)
+                3'b000:     BranchTypeD <= `BEQ;
+                3'b001:     BranchTypeD <= `BNE;
+                3'b100:     BranchTypeD <= `BLT;
+                3'b101:     BranchTypeD <= `BGE;
+                3'b110:     BranchTypeD <= `BLTU;
+                3'b111:     BranchTypeD <= `BGEU;
+                default:    BranchTypeD <= `NOBRANCH;                          
+            endcase
+        end
+        else 
+             BranchTypeD <= `NOBRANCH;
+    end
+    
+    //AluContrl
+    always @(*) begin
+        if ((Op == 7'b0010011) || (Op == 7'b0110011))begin
+            case (Fn3)
+                3'b000:     AluContrlD <= ((Op == 7'b0110011) && (Fn7 == 7'b0100000)) ? `SUB : `ADD;
+                3'b001:     AluContrlD <= `SLL;
+                3'b010:     AluContrlD <= `SLT;
+                3'b011:     AluContrlD <= `SLTU;
+                3'b100:     AluContrlD <= `XOR;
+                3'b101:     AluContrlD <= (Fn7 == 7'b0100000) ? `SRA : `SRL;
+                3'b110:     AluContrlD <= `OR;
+                3'b111:     AluContrlD <= `AND;
+                default:    AluContrlD <= 4'hx;                          
+            endcase
+        end
+        else if(Op == 7'b0110111)
+            AluContrlD <= `LUI;
+        else
+            AluContrlD <= `ADD;
+    end      
+    
+    //AluSrc1
     always@(*) begin
         case(Op)
-            `NIMM:  RegReadD <= 2'b11;
-            `IMM:   RegReadD <= 2'b10;
-            `LUIOP: RegReadD <= 2'b00; 
-            `AUIPC: RegReadD <= 2'b00;
-            `LD:    RegReadD <= 2'b10;
-            `ST:    RegReadD <= 2'b11;
-            `BR:    RegReadD <= 2'b11; 
-            `JL:    RegReadD <= 2'b00; 
-            `JLR:   RegReadD <= 2'b10; 
+            7'b0110011:     AluSrc1D <= 1'b0;
+            7'b0010011:     AluSrc1D <= 1'b0;
+            7'b0110111:     AluSrc1D <= 1'b0;
+            7'b0010111:     AluSrc1D <= 1'b1;
+            7'b0000011:     AluSrc1D <= 1'b0;
+            7'b0100011:     AluSrc1D <= 1'b0;
+            7'b1100011:     AluSrc1D <= 1'b0;
+            7'b1101111:     AluSrc1D <= 1'b0;
+            7'b1100111:     AluSrc1D <= 1'b0;
+        endcase
+    end    
+    
+    //AluSrc2
+    always@(*) begin
+        case(Op)
+            7'b0110011:     AluSrc2D <= 2'b00;
+            7'b0010011:     AluSrc2D <= (Fn3 == 3'b101 || Fn3 == 3'b001)? 2'b01 : 2'b10;
+            7'b0110111:     AluSrc2D <= 2'b10;
+            7'b0010111:     AluSrc2D <= 2'b10;
+            7'b0000011:     AluSrc2D <= 2'b10;
+            7'b0100011:     AluSrc2D <= 2'b10;
+            7'b1100011:     AluSrc2D <= 2'b00;
+            7'b1101111:     AluSrc2D <= 2'b00;
+            7'b1100111:     AluSrc2D <= 2'b10;
+        endcase
+    end    
+    
+    //ImmType
+    always @(*) begin
+        case (Op)
+            7'b0110011:     ImmType <= `RTYPE;
+            7'b0010011:     ImmType <= `ITYPE;
+            7'b0110111:     ImmType <= `UTYPE; 
+            7'b0010111:     ImmType <= `UTYPE;
+            7'b0000011:     ImmType <= `ITYPE;
+            7'b0100011:     ImmType <= `STYPE;
+            7'b1100011:     ImmType <= `BTYPE;
+            7'b1101111:     ImmType <= `JTYPE;
+            7'b1100111:     ImmType <= `ITYPE;             
         endcase
     end
 endmodule

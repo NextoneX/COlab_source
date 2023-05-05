@@ -13,49 +13,15 @@ module BranchDecisionMaking(
     output reg BranchE
     );
     
-    initial begin
-        BranchE = 0;
-    end
-    
-    always@(*) begin
-        case(BranchTypeE)
-            `BEQ: begin
-                if(Operand1 == Operand2)
-                    BranchE <= 1;
-                else
-                    BranchE <= 0;
-            end
-            `BNE: begin
-                if(Operand1 == Operand2)
-                    BranchE <= 0;
-                else
-                    BranchE <= 1;
-            end
-            `BLT: begin
-                if($signed(Operand1) < $signed(Operand2))
-                    BranchE <= 1;
-                else
-                    BranchE <= 0;
-            end
-            `BLTU: begin
-                if(Operand1 < Operand2)
-                    BranchE <= 1;
-                else
-                    BranchE <= 0;
-            end
-            `BGE: begin
-                if($signed(Operand1) >= $signed(Operand2))
-                    BranchE <= 1;
-                else
-                    BranchE <= 0;
-            end
-            `BGEU: begin
-                if(Operand1 >= Operand2)
-                    BranchE <= 1;
-                else
-                    BranchE <= 0;
-            end
-            default:BranchE <= 0;
+    always @(*) begin
+        case (BranchTypeE)
+            `BEQ:       BranchE <= ((Operand1 == Operand2) ? 1'b1 : 1'b0); 
+            `BNE:       BranchE <= ((Operand1 != Operand2) ? 1'b1 : 1'b0);  
+            `BLT:       BranchE <= (($signed(Operand1) < $signed(Operand2)) ? 1'b1 : 1'b0);
+            `BLTU:      BranchE <= ((Operand1 < Operand2) ? 1'b1 : 1'b0); 
+            `BGE:       BranchE <= (($signed(Operand1) >= $signed(Operand2)) ? 1'b1 : 1'b0);
+            `BGEU:      BranchE <= ((Operand1 >= Operand2) ? 1'b1 : 1'b0); 
+            default:    BranchE <= 1'b0;      //NOBRANCH                    
         endcase
     end
     
