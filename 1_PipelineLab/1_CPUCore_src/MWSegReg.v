@@ -14,7 +14,6 @@ module MWSegReg(
     input wire [31:0] AluOutE,
     output reg [31:0] AluOutMW, 
     input wire [31:0] ForwardData2,
-    output reg [31:0] StoreDataM,
     input wire [4:0] RdE,
     output reg [4:0] RdMW,
     input wire [31:0] PCE,
@@ -27,7 +26,6 @@ module MWSegReg(
     output wire [31:0] RD2,
     //Control Signals
     input wire [3:0] MemWriteE,
-    output reg [3:0] MemWriteM,
     input wire [2:0] RegWriteE,
     output reg [2:0] RegWriteMW,
     input wire MemToRegE,
@@ -35,7 +33,8 @@ module MWSegReg(
     input wire LoadNpcE,
     output reg LoadNpcMW
     );
-    
+    reg [31:0] StoreDataM;
+    reg [3:0] MemWriteM;
     initial begin
         AluOutMW    = 0;
         RdMW        = 5'b0;
