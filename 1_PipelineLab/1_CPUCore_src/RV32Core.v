@@ -67,6 +67,7 @@ module RV32Core(
     wire [31:0] PCE;
     wire [31:0] PCMW;
     wire [3:0] MemWriteM;
+    wire [31:0] StoreDataM; 
     wire LoadNpcMW;
     wire [31:0] DM_RD;
     wire [31:0] ResultMW;
@@ -229,6 +230,7 @@ module RV32Core(
         .AluOutE(AluOutE),
         .AluOutMW(AluOutMW), 
         .ForwardData2(ForwardData2),
+        .StoreDataM(StoreDataM),
         .RdE(RdE),
         .RdMW(RdMW),
         .PCE(PCE),
@@ -237,6 +239,7 @@ module RV32Core(
         .RegWriteMW(RegWriteMW),
         .MemToRegE(MemToRegE),
         .MemWriteE(MemWriteE),
+        .MemWriteM(MemWriteM),
         .LoadNpcE(LoadNpcE),
         .LoadNpcMW(LoadNpcMW),
         .RD(DM_RD),

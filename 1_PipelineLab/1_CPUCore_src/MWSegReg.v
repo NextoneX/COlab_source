@@ -14,6 +14,7 @@ module MWSegReg(
     input wire [31:0] AluOutE,
     output reg [31:0] AluOutMW, 
     input wire [31:0] ForwardData2,
+    output reg [31:0] StoreDataM,
     input wire [4:0] RdE,
     output reg [4:0] RdMW,
     input wire [31:0] PCE,
@@ -26,6 +27,7 @@ module MWSegReg(
     output wire [31:0] RD2,
     //Control Signals
     input wire [3:0] MemWriteE,
+    output reg [3:0] MemWriteM,
     input wire [2:0] RegWriteE,
     output reg [2:0] RegWriteMW,
     input wire MemToRegE,
@@ -39,6 +41,8 @@ module MWSegReg(
         RdMW        = 5'b0;
         PCMW        = 0;
         RegWriteMW  = 3'b0;
+        MemWriteM   = 4'b0;
+        StoreDataM  = 0;
         MemToRegMW  = 1'b0;
         LoadNpcMW   = 0;
     end
@@ -48,6 +52,8 @@ module MWSegReg(
             AluOutMW   <= clear ?     0 : AluOutE;
             RdMW       <= clear ?  5'b0 : RdE;
             PCMW       <= clear ?     0 : PCE;
+            MemWriteM  <= clear ?  4'b0 : MemWriteE;
+            StoreDataM <= clear ?     0 : ForwardData2;
             RegWriteMW <= clear ?  3'b0 : RegWriteE;
             MemToRegMW <= clear ?  1'b0 : MemToRegE;
             LoadNpcMW  <= clear ?     0 : LoadNpcE;
@@ -56,16 +62,16 @@ module MWSegReg(
     wire [31:0] RD_raw;
     DataRam DataRamInst (
         .clk    ( clk            ),  
-        .wea    ( (MemWriteE == 4'b1111) ? MemWriteE : (MemWriteE << AluOutE[1:0])),             //sw的WE为1111，sb为0001，sh为0011，由控制模块生成
-        .addra  ( AluOutE[31:2]        ),  
-        .dina   ( (MemWriteE == 4'b1111) ? ForwardData2 : (ForwardData2 << (AluOutE[1:0]*8))),   
+        .wea    ( (MemWriteM == 4'b1111) ? MemWriteM : (MemWriteM << AluOutMW[1:0])),             //sw的WE�?1111，sb�?0001，sh�?0011，由控制模块生成
+        .addra  ( AluOutMW[31:2]        ),  
+        .dina   ( (MemWriteM == 4'b1111) ? StoreDataM : (StoreDataM << (AluOutMW[1:0]*8))),   
         .douta  ( RD_raw         ),
         .web    ( WE2            ),
         .addrb  ( A2[31:2]       ),
         .dinb   ( WD2            ),
         .doutb  ( RD2            )
     );   
-    // 增加清除和阻塞支持
+    // 增加清除和阻塞支�?
     // 如果 chip not enabled, 输出上一次读到的
     // else 如果 chip clear, 输出 0
     // else 输出 values from bram
@@ -83,14 +89,14 @@ module MWSegReg(
 endmodule
 
 //功能说明
-    //MWSegReg是第四段寄存器
+    //MWSegReg是第四段寄存�?
     //类似于IDSegReg.V中对Bram的调用和拓展，它同时包含了一个同步读写的Bram
-    //（此处你可以调用我们提供的举例：DataRam，它将会自动综合为block memory，你也可以替代性的调用xilinx的bram ip核）。
+    //（此处你可以调用我们提供的举例：DataRam，它将会自动综合为block memory，你也可以替代�?�的调用xilinx的bram ip核）�?
     //举例：DataRam DataRamInst (
-    //    .clk    (),                      //请补全
-    //    .wea    (),                      //请补全
-    //    .addra  (),                      //请补全
-    //    .dina   (),                      //请补全
+    //    .clk    (),                      //请补�?
+    //    .wea    (),                      //请补�?
+    //    .addra  (),                      //请补�?
+    //    .dina   (),                      //请补�?
     //    .douta  ( RD_raw         ),
     //    .web    ( WE2            ),
     //    .addrb  ( A2[31:2]       ),
