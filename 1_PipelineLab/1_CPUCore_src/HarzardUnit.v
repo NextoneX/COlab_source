@@ -17,56 +17,35 @@ module HarzardUnit(
     output reg Forward1E, Forward2E
     );
     //Stall and Flush signals generate
-
+    always@(*)
+	begin
+		if(CpuRst)
+			{StallF, FlushF, StallD, FlushD, StallE, FlushE, StallMW, FlushMW} <= 8'b01010101;
+		else if(BranchE || JalrE)
+			{StallF, FlushF, StallD, FlushD, StallE, FlushE, StallMW, FlushMW} <= 8'b00010100;
+		else if(JalD)
+			{StallF, FlushF, StallD, FlushD, StallE, FlushE, StallMW, FlushMW} <= 8'b00010000;
+		else if( MemToRegE && ((RdE == Rs1D)||(RdE == Rs2D)))
+			{StallF, FlushF, StallD, FlushD, StallE, FlushE, StallMW, FlushMW} <= 8'b10100100;
+		else
+			{StallF, FlushF, StallD, FlushD, StallE, FlushE, StallMW, FlushMW} <= 8'b00000000;
+	end
     //Forward Register Source 1
-
+    always@(*)		
+	begin
+		if(RegReadE[1] && RegWriteMW!=3'b0 && RdMW != 5'b0  && RdMW == Rs1E) 
+                Forward1E <= 1'b1;
+            else
+                Forward1E <= 1'b0;
+	end
     //Forward Register Source 2
-
-    initial begin
-        StallF = 0;
-        FlushF = 0;
-        StallD = 0;
-        FlushD = 0;
-        StallE = 0;
-        FlushE = 0;
-        StallMW = 0;
-        FlushMW = 0;
-        Forward1E = 0;
-        Forward2E = 0;
-    end
-
-    always@(*) begin
-        if(CpuRst) begin
-            FlushF <= 1;
-            FlushD <= 1;
-            FlushE <= 1;
-            FlushMW <= 1;
-            StallF <= 0;
-            StallD <= 0;
-            StallE <= 0;
-            StallMW <= 0;
-            Forward1E <= 0;
-            Forward2E <= 0;
-        end
-        else begin
-            if(|RegWriteMW && RdMW != 5'b0  && RdMW == Rs1E && RegReadE[1]) 
-                Forward1E <= 1;
+    always@(*)		
+	begin
+		if(RegReadE[0] && RegWriteMW!=3'b0 && RdMW != 5'b0  && RdMW == Rs2E ) 
+                Forward2E <= 1'b1;
             else
-                Forward1E <= 0;
-
-            if(|RegWriteMW && RdMW != 5'b0  && RdMW == Rs2E && RegReadE[0])   
-                Forward2E <= 1;
-            else
-                Forward2E <= 0;
-            
-            FlushF <= 0;
-            FlushMW <= 0;
-            StallF <= (MemToRegE && RdE != 5'b0  && (RdMW == Rs1E || RdMW == Rs2E));
-            StallD <= (MemToRegE && RdE != 5'b0  && (RdMW == Rs1E || RdMW == Rs2E));
-            FlushD <= BranchE | JalrE | JalD;
-            FlushE <= BranchE | JalrE | (MemToRegE && RdE != 5'b0  && (RdMW == Rs1E || RdMW == Rs2E));
-        end
-    end
+                Forward2E <= 1'b0;
+	end
     
 endmodule
 
