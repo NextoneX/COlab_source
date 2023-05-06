@@ -10,10 +10,10 @@
 // !!! ALL YOU NEED TO CHANGE IS 4 FILE PATH BELOW !!!	
 //				(they are all optional, you can run cpu without change paths here,if files are failed to open, we will not dump the content to .txt and will not try to initial your bram)
 //////////////////////////////////////////////////////////////////////////////////
-`define DataRamContentLoadPath "C:/Users/2_Simulation/Number2Ascii.data"
-`define InstRamContentLoadPath "C:/Users/2_Simulation/Number2Ascii.inst"
-`define DataRamContentSavePath "C:/Users/2_Simulation/Number2AsciiDataRamContent.txt"
-`define InstRamContentSavePath "C:/Users/2_Simulation/Number2AsciiInstRamContent.txt"
+`define DataRamContentLoadPath "C:\\Users\\25350\\Desktop\\XDDL_HW\\COlab_source\\2_BRAMInputFileGenerator\\1testAll.data"
+`define InstRamContentLoadPath "C:\\Users\\25350\\Desktop\\XDDL_HW\\COlab_source\\2_BRAMInputFileGenerator\\1testAll.inst"
+`define DataRamContentSavePath "C:\\Users\\25350\\Desktop\\XDDL_HW\\COlab_source\\2_BRAMInputFileGenerator\\DataRamContent.txt"
+`define InstRamContentSavePath "C:\\Users\\25350\\Desktop\\XDDL_HW\\COlab_source\\2_BRAMInputFileGenerator\\InstRamContent.txt"
 `define BRAMWORDS 4096  //a word is 32bit, so our bram is 4096*32bit
 
 module testBench(
