@@ -65,7 +65,7 @@ module EXSegReg(
         LoadNpcE   = 1'b0;
         RegReadE   = 2'b00;
         BranchTypeE = 3'b0;
-        AluContrlE = 5'b0;
+        AluContrlE = 4'b0;
         AluSrc1E   = 1'b0; 
         AluSrc2E   = 2'b0; 
     end
@@ -89,7 +89,7 @@ module EXSegReg(
                 LoadNpcE<=1'b0;
                 RegReadE<=2'b00;
                 BranchTypeE = 3'b0;
-                AluContrlE<=5'b0;
+                AluContrlE<=4'b0;
                 AluSrc1E<=1'b0; 
                 AluSrc2E<=2'b0;     
             end else begin
