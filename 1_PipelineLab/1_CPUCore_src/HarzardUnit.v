@@ -14,7 +14,7 @@ module HarzardUnit(
     input wire MemToRegE,
     input wire [2:0] RegWriteMW,
     output reg StallF, FlushF, StallD, FlushD, StallE, FlushE,  StallMW, FlushMW,
-    output reg [1:0] Forward1E, Forward2E //!原本没有[1:0]
+    output reg Forward1E, Forward2E
     );
     //Stall and Flush signals generate
 
@@ -29,12 +29,10 @@ module HarzardUnit(
         FlushD = 0;
         StallE = 0;
         FlushE = 0;
-        StallM = 0;
-        FlushM = 0;
-        StallW = 0;
-        FlushW = 0;
-        Forward1E = 2'b00;
-        Forward2E = 2'b00;
+        StallMW = 0;
+        FlushMW = 0;
+        Forward1E = 0;
+        Forward2E = 0;
     end
 
     always@(*) begin
@@ -42,38 +40,31 @@ module HarzardUnit(
             FlushF <= 1;
             FlushD <= 1;
             FlushE <= 1;
-            FlushM <= 1;
-            FlushW <= 1;
+            FlushMW <= 1;
             StallF <= 0;
             StallD <= 0;
             StallE <= 0;
-            StallM <= 0;
-            StallW <= 0;
-            Forward1E = 2'b00;
-            Forward2E = 2'b00;
+            StallMW <= 0;
+            Forward1E <= 0;
+            Forward2E <= 0;
         end
         else begin
-            if(|RegWriteM && RdM != 5'b0  && RdM == Rs1E && RegReadE[1]) 
-                Forward1E <= 2'b10;
-            else if(|RegWriteW && RdW != 5'b0  && RdW == Rs1E && RegReadE[1])
-                Forward1E <= 2'b01;    
+            if(|RegWriteMW && RdMW != 5'b0  && RdMW == Rs1E && RegReadE[1]) 
+                Forward1E <= 1;
             else
-                Forward1E <= 2'b00;
+                Forward1E <= 0;
 
-            if(|RegWriteM && RdM != 5'b0  && RdM == Rs2E && RegReadE[0])   
-                Forward2E <= 2'b10;
-            else if(|RegWriteW && RdW != 5'b0  && RdW == Rs2E && RegReadE[0])
-                Forward2E <= 2'b01;    
+            if(|RegWriteMW && RdMW != 5'b0  && RdMW == Rs2E && RegReadE[0])   
+                Forward2E <= 1;
             else
-                Forward2E <= 2'b00;
+                Forward2E <= 0;
             
             FlushF <= 0;
-            FlushM <= 0;
-            FlushW <= 0;
-            StallF <= (MemToRegE && RdE != 5'b0  && (RdM == Rs1E || RdM == Rs2E));
-            StallD <= (MemToRegE && RdE != 5'b0  && (RdM == Rs1E || RdM == Rs2E));
+            FlushMW <= 0;
+            StallF <= (MemToRegE && RdE != 5'b0  && (RdMW == Rs1E || RdMW == Rs2E));
+            StallD <= (MemToRegE && RdE != 5'b0  && (RdMW == Rs1E || RdMW == Rs2E));
             FlushD <= BranchE | JalrE | JalD;
-            FlushE <= BranchE | JalrE | (MemToRegE && RdE != 5'b0  && (RdM == Rs1E || RdM == Rs2E));
+            FlushE <= BranchE | JalrE | (MemToRegE && RdE != 5'b0  && (RdMW == Rs1E || RdMW == Rs2E));
         end
     end
     

@@ -42,8 +42,8 @@ module EXSegReg(
     output reg [1:0] RegReadE, 
     input wire [2:0] BranchTypeD,
     output reg [2:0] BranchTypeE,
-    input wire [4:0] AluContrlD,
-    output reg [4:0] AluContrlE,
+    input wire [3:0] AluContrlD,    //!
+    output reg [3:0] AluContrlE,    //!
     input wire AluSrc1D,
     output reg AluSrc1E,
     input wire [1:0] AluSrc2D,

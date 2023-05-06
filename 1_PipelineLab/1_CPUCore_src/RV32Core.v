@@ -28,7 +28,7 @@ module RV32Core(
     wire [3:0] MemWriteD;
     wire [1:0] RegReadD;
     wire [2:0] BranchTypeD;
-    wire [4:0] AluContrlD;
+    wire [3:0] AluContrlD;  //!
     wire [1:0] AluSrc2D;
     wire [2:0] RegWriteMW;
     wire [4:0] RdMW;
@@ -71,8 +71,8 @@ module RV32Core(
     wire [31:0] DM_RD;
     wire [31:0] ResultMW;
     wire MemToRegMW;
-    wire [1:0] Forward1E; //!原本没有[1:0]
-    wire [1:0] Forward2E; //!原本没有[1:0]
+    wire Forward1E;
+    wire Forward2E;
     wire [1:0] LoadedBytesSelect;
     //wire values assignments
     assign {Funct7D, Rs2D, Rs1D, Funct3D, RdD, OpCodeD} = Instr;
