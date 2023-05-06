@@ -55,10 +55,10 @@ module MWSegReg(
 
     wire [31:0] RD_raw;
     DataRam DataRamInst (
-        .clk    ( clk            ),                      //请补全
+        .clk    ( clk            ),  
         .wea    ( (MemWriteE == 4'b1111) ? MemWriteE : (MemWriteE << AluOutMW[1:0])),             //sw的WE为1111，sb为0001，sh为0011，由控制模块生成
-        .addra  ( AluOutMW[31:2]        ),                      //请补全
-        .dina   ( (MemWriteE == 4'b1111) ? ForwardData2 : (ForwardData2 << (AluOutMW[1:0]*8))),                      //请补全
+        .addra  ( AluOutMW[31:2]        ),  
+        .dina   ( (MemWriteE == 4'b1111) ? ForwardData2 : (ForwardData2 << (AluOutMW[1:0]*8))),   
         .douta  ( RD_raw         ),
         .web    ( WE2            ),
         .addrb  ( A2[31:2]       ),
