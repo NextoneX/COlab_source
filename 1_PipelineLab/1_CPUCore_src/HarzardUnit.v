@@ -21,11 +21,11 @@ module HarzardUnit(
 	begin
 		if(CpuRst)
 			{StallF, FlushF, StallD, FlushD, StallE, FlushE, StallMW, FlushMW} <= 8'b01010101;
-		else if(BranchE || JalrE)
+		else if(BranchE || JalrE)   // 对分支指令 和 jar， 如果跳转冲刷ID和EX段寄存器
 			{StallF, FlushF, StallD, FlushD, StallE, FlushE, StallMW, FlushMW} <= 8'b00010100;
-		else if(JalD)
+		else if(JalD)               //对跳转指令， 冲刷ID段
 			{StallF, FlushF, StallD, FlushD, StallE, FlushE, StallMW, FlushMW} <= 8'b00010000;
-		else if( MemToRegE && ((RdE == Rs1D)||(RdE == Rs2D)))
+		else if( MemToRegE && ((RdE == Rs1D)||(RdE == Rs2D)))   //对Load指令引发的冲突，stall流水线
 			{StallF, FlushF, StallD, FlushD, StallE, FlushE, StallMW, FlushMW} <= 8'b10100100;
 		else
 			{StallF, FlushF, StallD, FlushD, StallE, FlushE, StallMW, FlushMW} <= 8'b00000000;
