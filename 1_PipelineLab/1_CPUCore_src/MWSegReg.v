@@ -61,7 +61,7 @@ module MWSegReg(
     wire [31:0] RD_raw;
     DataRam DataRamInst (
         .clk    ( clk            ),  
-        .wea    ( (MemWriteM == 4'b1111) ? MemWriteM : (MemWriteM << AluOutMW[1:0])),             //sw的WE�?1111，sb�?0001，sh�?0011，由控制模块生成
+        .wea    ( (MemWriteM == 4'b1111) ? MemWriteM : (MemWriteM << AluOutMW[1:0])),
         .addra  ( AluOutMW[31:2]        ),  
         .dina   ( (MemWriteM == 4'b1111) ? StoreDataM : (StoreDataM << (AluOutMW[1:0]*8))),   
         .douta  ( RD_raw         ),
@@ -70,7 +70,7 @@ module MWSegReg(
         .dinb   ( WD2            ),
         .doutb  ( RD2            )
     );   
-    // 增加清除和阻塞支�?
+    // 增加清除和阻塞支持
     // 如果 chip not enabled, 输出上一次读到的
     // else 如果 chip clear, 输出 0
     // else 输出 values from bram
