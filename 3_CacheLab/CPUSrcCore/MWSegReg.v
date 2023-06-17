@@ -31,7 +31,8 @@ module MWSegReg(
     input wire MemToRegE,
     output reg MemToRegMW,
     input wire LoadNpcE,
-    output reg LoadNpcMW
+    output reg LoadNpcMW,
+    output wire Cachemiss
     );
     reg [31:0] StoreDataM;
     reg [3:0] MemWriteM;
@@ -62,13 +63,13 @@ module MWSegReg(
     cache #(
         .LINE_ADDR_LEN  ( 3             ),
         .SET_ADDR_LEN   ( 2             ),
-        .TAG_ADDR_LEN   ( 5            ),
-        .WAY_CNT        ( 2             )
+        .TAG_ADDR_LEN   ( 7            ),
+        .WAY_CNT        ( 3             )
     ) 
     cache_test_instance (
         .clk            ( clk           ),
         .rst            ( clear         ),
-        .miss           ( Dcachemiss    ),
+        .miss           ( Cachemiss    ),
         .addr           ( AluOutMW      ),
         .rd_req         ( MemToRegMW    ),
         .rd_data        ( RD_raw        ),
@@ -77,22 +78,27 @@ module MWSegReg(
     );
         
     reg [31:0] hit_cnt = 0, miss_cnt = 0;
-    reg [31:0] last_ad = 0;
-    wire cache_rd_write = (|MemWriteM) | MemToRegMW;
+    reg [31:0] last_addr = 0;
+    wire cache_rw = (|MemWriteM) | MemToRegMW;
+    always @ (posedge clk or posedge clear) begin
+        if(clear)
+            last_addr  <= 0;
+        else begin
+            if( cache_rw )
+                last_addr <= AluOutMW;
+        end
+    end
+    
     always @ (posedge clk or posedge clear) begin
         if(clear) begin
-            last_addr  <= 0;
-            hit_count  <= 0;
-            miss_count <= 0;
-        end 
-        else begin
-            if( cache_rd_wr ) 
-                last_addr <= A;
-            if( cache_rd_wr & (last_addr!=A) ) begin
-                if(Dcachemiss)
-                    miss_count <= miss_count+1;
+            hit_cnt  <= 0;
+            miss_cnt <= 0;
+        end else begin
+            if( cache_rw & (last_addr!=AluOutMW) ) begin
+                if(Cachemiss)
+                    miss_cnt <= miss_cnt+1;
                 else
-                    hit_count  <= hit_count +1;
+                    hit_cnt  <= hit_cnt +1;
             end
         end
     end
