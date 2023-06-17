@@ -21,6 +21,8 @@ module HarzardUnit(
 	begin
 		if(CpuRst)
 			{StallF, FlushF, StallD, FlushD, StallE, FlushE, StallMW, FlushMW} <= 8'b01010101;
+        else if(DCacheMiss)
+	        {StallF, FlushF, StallD, FlushD, StallE, FlushE, StallMW, FlushMW} <= 8'b10101010;
 		else if(BranchE || JalrE)
 			{StallF, FlushF, StallD, FlushD, StallE, FlushE, StallMW, FlushMW} <= 8'b00010100;
 		else if(JalD)

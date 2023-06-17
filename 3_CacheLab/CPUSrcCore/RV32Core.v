@@ -74,6 +74,7 @@ module RV32Core(
     wire Forward1E;
     wire Forward2E;
     wire [1:0] LoadedBytesSelect;
+    wire Cachemiss;
     //wire values assignments
     assign {Funct7D, Rs2D, Rs1D, Funct3D, RdD, OpCodeD} = Instr;
     assign JalNPC=ImmD+PCD;
@@ -272,7 +273,7 @@ module RV32Core(
         .RdMW(RdMW),
         .RegWriteMW(RegWriteMW),
         .ICacheMiss(1'b0),
-        .DCacheMiss(1'b0),
+        .DCacheMiss(Cachemiss),
         .StallF(StallF),
         .FlushF(FlushF),
         .StallD(StallD),
