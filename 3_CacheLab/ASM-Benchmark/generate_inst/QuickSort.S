@@ -30,7 +30,7 @@ QuickSort:
         bge    a1, a2, QuickSortReturn                # if a1>=a2, end<=start, jump to return
         or     t1, a1, zero                           # t1=i=a1=start
         or     t2, a2, zero                           # t2=j=a2=end
-        add    t0, a0, t1                             # 
+        add    t0, a0, t1                             # t0 = *lst+start
         lw     t0, (t0)                               # t0=key=lst[start]
 
         PartationStart:          

@@ -11,8 +11,16 @@ module mem #(                   //
 localparam MEM_SIZE = 1<<ADDR_LEN;
 reg [31:0] ram_cell [MEM_SIZE];
 
+always @ (posedge clk or posedge rst)
+    if(rst)
+        rd_data <= 0;
+    else
+        rd_data <= ram_cell[addr];
 
-//Quicksort.S
+always @ (posedge clk)
+    if(wr_req) 
+        ram_cell[addr] <= wr_data;
+
 initial begin
     ram_cell[       0] = 32'h000000d2;
     ram_cell[       1] = 32'h0000002d;
@@ -272,14 +280,5 @@ initial begin
     ram_cell[     255] = 32'h000000df;
 end
 
-always @ (posedge clk or posedge rst)
-    if(rst)
-        rd_data <= 0;
-    else
-        rd_data <= ram_cell[addr];
-
-always @ (posedge clk)
-    if(wr_req) 
-        ram_cell[addr] <= wr_data;
-
 endmodule
+

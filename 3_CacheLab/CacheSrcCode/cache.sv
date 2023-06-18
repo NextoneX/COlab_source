@@ -1,192 +1,135 @@
 
-// `define LRU 1 //æ³¨é‡Šæ‰å°±æ˜¯FIFOç­–ç•¥
+
 module cache #(
-    parameter  LINE_ADDR_LEN = 3, // lineå†…åœ°å€é•¿åº¦ï¼Œå†³å®šäº†æ¯ä¸ªlineå…·æœ‰2^3ä¸ªword
-    parameter  SET_ADDR_LEN  = 3, // ç»„åœ°å€é•¿åº¦ï¼Œå†³å®šäº†ä¸€å…±æœ‰2^3=8ç»„
-    parameter  TAG_ADDR_LEN  = 6, // tagé•¿åº¦
-    parameter  WAY_CNT       = 3  // ç»„ç›¸è¿åº¦ï¼Œå†³å®šäº†æ¯ç»„ä¸­æœ‰å¤šå°‘è·¯line
+    parameter  LINE_ADDR_LEN = 3, // lineÄÚµØÖ·³¤¶È£¬¾ö¶¨ÁËÃ¿¸öline¾ßÓĞ2^3¸öword
+    parameter  SET_ADDR_LEN  = 3, // ×éµØÖ·³¤¶È£¬¾ö¶¨ÁËÒ»¹²ÓĞ2^3=8×é
+    parameter  TAG_ADDR_LEN  = 6, // tag³¤¶È
+    parameter  WAY_CNT       = 3  // ×éÏàÁ¬¶È£¬¾ö¶¨ÁËÃ¿×éÖĞÓĞ¶àÉÙÂ·line£¬ÕâÀïÊÇÖ±½ÓÓ³ÉäĞÍcache£¬Òò´Ë¸Ã²ÎÊıÃ»ÓÃµ½
 )(
     input  clk, rst,
-    output miss,               // å¯¹CPUå‘å‡ºçš„missä¿¡å·
-    input  [31:0] addr,        // è¯»å†™è¯·æ±‚åœ°å€
-    input  rd_req,             // è¯»è¯·æ±‚ä¿¡å·
-    output reg [31:0] rd_data, // è¯»å‡ºçš„æ•°æ®ï¼Œä¸€æ¬¡è¯»ä¸€ä¸ªword
-    input  wr_req,             // å†™è¯·æ±‚ä¿¡å·
-    input  [31:0] wr_data      // è¦å†™å…¥çš„æ•°æ®ï¼Œä¸€æ¬¡å†™ä¸€ä¸ªword
+    output miss,               // ¶ÔCPU·¢³öµÄmissĞÅºÅ
+    input  [31:0] addr,        // ¶ÁĞ´ÇëÇóµØÖ·
+    input  rd_req,             // ¶ÁÇëÇóĞÅºÅ
+    output reg [31:0] rd_data, // ¶Á³öµÄÊı¾İ£¬Ò»´Î¶ÁÒ»¸öword
+    input  wr_req,             // Ğ´ÇëÇóĞÅºÅ
+    input  [31:0] wr_data      // ÒªĞ´ÈëµÄÊı¾İ£¬Ò»´ÎĞ´Ò»¸öword
 );
-
-localparam MEM_ADDR_LEN    = TAG_ADDR_LEN + SET_ADDR_LEN ; // è®¡ç®—ä¸»å­˜åœ°å€é•¿åº¦ MEM_ADDR_LENï¼Œä¸»å­˜å¤§å°=2^MEM_ADDR_LENä¸ªline
-localparam UNUSED_ADDR_LEN = 32 - TAG_ADDR_LEN - SET_ADDR_LEN - LINE_ADDR_LEN - 2 ;       // è®¡ç®—æœªä½¿ç”¨çš„åœ°å€çš„é•¿åº¦
-
-localparam LINE_SIZE       = 1 << LINE_ADDR_LEN  ;         // è®¡ç®— line ä¸­ word çš„æ•°é‡ï¼Œå³ 2^LINE_ADDR_LEN ä¸ªword æ¯ line
-localparam SET_SIZE        = 1 << SET_ADDR_LEN   ;         // è®¡ç®—ä¸€å…±æœ‰å¤šå°‘ç»„ï¼Œå³ 2^SET_ADDR_LEN ä¸ªç»„
-
-reg [            31:0] cache_mem    [SET_SIZE][WAY_CNT][LINE_SIZE]; // SET_SIZEä¸ªç»„ï¼Œæ¯ç»„WAY_CNTä¸ªlineï¼Œæ¯ä¸ªlineæœ‰LINE_SIZEä¸ªword
-reg [TAG_ADDR_LEN-1:0] cache_tags   [SET_SIZE][WAY_CNT];            // SET_SIZEä¸ªç»„ï¼Œæ¯ç»„WAY_CNTä¸ªTAG
-reg                    valid        [SET_SIZE][WAY_CNT];            // SET_SIZEä¸ªç»„ï¼Œæ¯ç»„WAY_CNTä¸ªvalid(æœ‰æ•ˆä½)
-reg                    dirty        [SET_SIZE][WAY_CNT];            // SET_SIZEä¸ªç»„ï¼Œæ¯ç»„WAY_CNTä¸ªdirty(è„ä½)
-
-wire [              2-1 :0]   word_addr;                   // å°†è¾“å…¥åœ°å€addræ‹†åˆ†æˆè¿™5ä¸ªéƒ¨åˆ†
-wire [  LINE_ADDR_LEN-1 :0]   line_addr;
-wire [   SET_ADDR_LEN-1 :0]    set_addr;
-wire [   TAG_ADDR_LEN-1 :0]    tag_addr;
-wire [UNUSED_ADDR_LEN-1 :0] unused_addr;
-
-enum  {IDLE, SWAP_OUT, SWAP_IN, SWAP_IN_OK} cache_stat;    // cache çŠ¶æ€æœºçš„çŠ¶æ€å®šä¹‰
-                                                           // IDLEä»£è¡¨å°±ç»ªï¼ŒSWAP_OUTä»£è¡¨æ­£åœ¨æ¢å‡ºï¼ŒSWAP_INä»£è¡¨æ­£åœ¨æ¢å…¥ï¼ŒSWAP_IN_OKä»£è¡¨æ¢å…¥åè¿›è¡Œä¸€å‘¨æœŸçš„å†™å…¥cacheæ“ä½œã€‚
-
-reg [   SET_ADDR_LEN-1 :0] mem_rd_set_addr = 0;
-reg [   TAG_ADDR_LEN-1 :0] mem_rd_tag_addr = 0;
-wire[   MEM_ADDR_LEN-1 :0] mem_rd_addr = {mem_rd_tag_addr, mem_rd_set_addr};
-reg [   MEM_ADDR_LEN-1 :0] mem_wr_addr = 0;
-
-reg  [31:0] mem_wr_line [LINE_SIZE];
-wire [31:0] mem_rd_line [LINE_SIZE];
-
-wire mem_gnt;      // ä¸»å­˜å“åº”è¯»å†™çš„æ¡æ‰‹ä¿¡å·
-
-assign {unused_addr, tag_addr, set_addr, line_addr, word_addr} = addr;  // æ‹†åˆ† 32bit ADDR
-
-reg cache_hit = 1'b0;
-integer hit_way = -1; //å‘½ä¸­çš„è·¯
-always @ (*) begin              // åˆ¤æ–­ è¾“å…¥çš„address æ˜¯å¦åœ¨ cache ä¸­å‘½ä¸­
-	for(integer way = 0; way < WAY_CNT; way++)
-		if(valid[set_addr][way] && cache_tags[set_addr][way] == tag_addr) begin //å¦‚æœ cache lineæœ‰æ•ˆï¼Œå¹¶ä¸”tagä¸è¾“å…¥åœ°å€ä¸­çš„tagç›¸ç­‰ï¼Œåˆ™å‘½ä¸­
-			cache_hit = 1'b1;
-			hit_way = way;
-			break;
-		end else begin
-			cache_hit = 1'b0;
-			hit_way = -1;
-		end
-end
-
-integer swap_way[SET_SIZE]; //è®°å½•æ¯ä¸ªç»„ä¸‹ä¸€æ¬¡è¿›è¡Œæ¢å…¥/æ¢å‡ºçš„è·¯
-`ifdef LRU
-integer way_age[SET_SIZE][WAY_CNT];
-integer max_age_way;
-integer max_age;
-`endif
-always @ (posedge clk or posedge rst) begin     // ?? cache ???
-    if(rst) begin
-        cache_stat <= IDLE;
-        for(integer i=0; i<SET_SIZE; i++) begin
-			swap_way[i] <= 0;
-			for(integer j = 0; j < WAY_CNT; j++) begin
-				dirty[i][j] <= 1'b0;
-				valid[i][j] <= 1'b0;
-`ifdef LRU
-				way_age[i][j] <= 0;
-`endif
-				end
-        end
-		for(integer k = 0; k < LINE_SIZE; k++)
-			mem_wr_line[k] <= 0;
-		mem_wr_addr <= 0;
-		{mem_rd_tag_addr, mem_rd_set_addr} <= 0;
-		rd_data <= 0;
-`ifdef LRU
-		max_age <= 0;
-		max_age_way <= 0;
-`endif
-    end else begin
-        case(cache_stat)
-        IDLE:       begin
-                        if( cache_hit ) begin
-                            if(rd_req) begin    // å¦‚æœcacheå‘½ä¸­ï¼Œå¹¶ä¸”æ˜¯è¯»è¯·æ±‚ï¼Œ
-                                rd_data <= cache_mem[set_addr][hit_way][line_addr];   //åˆ™ç›´æ¥ä»cacheä¸­å–å‡ºè¦è¯»çš„æ•°æ®
-                            end else if(wr_req) begin // å¦‚æœcacheå‘½ä¸­ï¼Œå¹¶ä¸”æ˜¯å†™è¯·æ±‚ï¼Œ
-                                cache_mem[set_addr][hit_way][line_addr] <= wr_data;   // åˆ™ç›´æ¥å‘cacheä¸­å†™å…¥æ•°æ®
-                                dirty[set_addr][hit_way] <= 1'b1;                     // å†™æ•°æ®çš„åŒæ—¶ç½®è„ä½
-                            end 
-`ifdef LRU
-                        if(rd_req | wr_req) begin//æ›´æ–°å„wayå¹´é¾„ï¼Œæ›´æ–°ä¸‹ä¸€æ¬¡æ›¿æ¢åº”è¯¥é€‰æ‹©çš„way
-                            for(integer way = 0; way < WAY_CNT; way++)
-                                if(way == hit_way)
-                                    way_age[set_addr][way] <= 0;
-                                else
-                                    way_age[set_addr][way] <= way_age[set_addr][way] + 1;
-                            for(integer way = 0; way < WAY_CNT; way++)
-                                if(way_age[set_addr][way] > max_age) begin
-                                    max_age = way_age[set_addr][way];
-                                    max_age_way = way;
-                                end
-                            swap_way[set_addr] <= max_age_way;
-                            max_age_way <= 0;
-                        end
-`endif
-                        end else begin
-                            if(wr_req | rd_req) begin   // å¦‚æœ cache æœªå‘½ä¸­ï¼Œå¹¶ä¸”æœ‰è¯»å†™è¯·æ±‚ï¼Œåˆ™éœ€è¦è¿›è¡Œæ¢å…¥
-                                if( valid[set_addr][swap_way[set_addr]] & dirty[set_addr][swap_way[set_addr]] ) begin    // å¦‚æœ è¦æ¢å…¥çš„cache line æœ¬æ¥æœ‰æ•ˆï¼Œä¸”è„ï¼Œåˆ™éœ€è¦å…ˆå°†å®ƒæ¢å‡º
-                                    cache_stat  <= SWAP_OUT;
-                                    mem_wr_addr <= { cache_tags[set_addr][swap_way[set_addr]], set_addr };
-                                    mem_wr_line <= cache_mem[set_addr][swap_way[set_addr]];
-                                end else begin                                   // åä¹‹ï¼Œä¸éœ€è¦æ¢å‡ºï¼Œç›´æ¥æ¢å…¥
-                                    cache_stat  <= SWAP_IN;
-                                end
-                                {mem_rd_tag_addr, mem_rd_set_addr} <= {tag_addr, set_addr};
-                            end
-                        end
-                    end
-        SWAP_OUT:   begin
-                        if(mem_gnt) begin           // å¦‚æœä¸»å­˜æ¡æ‰‹ä¿¡å·æœ‰æ•ˆï¼Œè¯´æ˜æ¢å‡ºæˆåŠŸï¼Œè·³åˆ°ä¸‹ä¸€çŠ¶æ€
-                            cache_stat <= SWAP_IN;
-                        end
-                    end
-        SWAP_IN:    begin
-                        if(mem_gnt) begin           // å¦‚æœä¸»å­˜æ¡æ‰‹ä¿¡å·æœ‰æ•ˆï¼Œè¯´æ˜æ¢å…¥æˆåŠŸï¼Œè·³åˆ°ä¸‹ä¸€çŠ¶æ€
-                            cache_stat <= SWAP_IN_OK;
-                        end
-                    end
-        SWAP_IN_OK: begin           // ä¸Šä¸€ä¸ªå‘¨æœŸæ¢å…¥æˆåŠŸï¼Œè¿™å‘¨æœŸå°†ä¸»å­˜è¯»å‡ºçš„lineå†™å…¥cacheï¼Œå¹¶æ›´æ–°tagï¼Œç½®é«˜validï¼Œç½®ä½dirty
-                        for(integer i=0; i<LINE_SIZE; i++)  cache_mem[mem_rd_set_addr][swap_way[mem_rd_set_addr]][i] <= mem_rd_line[i];
-                        cache_tags[mem_rd_set_addr][swap_way[mem_rd_set_addr]] <= mem_rd_tag_addr;
-                        valid[mem_rd_set_addr][swap_way[mem_rd_set_addr]] <= 1'b1;
-                        dirty[mem_rd_set_addr][swap_way[mem_rd_set_addr]] <= 1'b0;
-                        cache_stat <= IDLE;        // å›åˆ°å°±ç»ªçŠ¶æ€
-`ifdef LRU
-                        for(integer way = 0; way < WAY_CNT; way++)//æ›´æ–°å„wayï¼Œæ›´æ–°ä¸‹ä¸€æ¬¡æ›¿æ¢åº”è¯¥é€‰æ‹©çš„way
-                            if(way == hit_way)
-                                way_age[mem_rd_set_addr][way] <= 0;
-                            else
-                                way_age[mem_rd_set_addr][way] <= way_age[mem_rd_set_addr][way] + 1;
-                        for(integer way = 0; way < WAY_CNT; way++)
-                            if(way_age[mem_rd_set_addr][way] > max_age) begin
-                                max_age = way_age[mem_rd_set_addr][way];
-                                max_age_way = way;
-                            end
-                            swap_way[mem_rd_set_addr] <= max_age_way;
-                            max_age_way <= 0;
-`else
-                        if(swap_way[mem_rd_set_addr] == WAY_CNT - 1)
-                            swap_way[mem_rd_set_addr] <= 0;
-                        else
-                            swap_way[mem_rd_set_addr] <= swap_way[mem_rd_set_addr] + 1;
-`endif
-                    end
-        endcase
+    
+    localparam MEM_ADDR_LEN    = TAG_ADDR_LEN + SET_ADDR_LEN ; // ¼ÆËãÖ÷´æµØÖ·³¤¶È MEM_ADDR_LEN£¬Ö÷´æ´óĞ¡=2^MEM_ADDR_LEN¸öline
+    localparam UNUSED_ADDR_LEN = 32 - TAG_ADDR_LEN - SET_ADDR_LEN - LINE_ADDR_LEN - 2 ;       // ¼ÆËãÎ´Ê¹ÓÃµÄµØÖ·µÄ³¤¶È
+    
+    localparam LINE_SIZE       = 1 << LINE_ADDR_LEN  ;         // ¼ÆËã line ÖĞ word µÄÊıÁ¿£¬¼´ 2^LINE_ADDR_LEN ¸öword Ã¿ line
+    localparam SET_SIZE        = 1 << SET_ADDR_LEN   ;         // ¼ÆËãÒ»¹²ÓĞ¶àÉÙ×é£¬¼´ 2^SET_ADDR_LEN ¸ö×é
+    
+    reg [            31:0] cache_mem    [SET_SIZE][LINE_SIZE]; // SET_SIZE¸öline£¬Ã¿¸ölineÓĞLINE_SIZE¸öword
+    reg [TAG_ADDR_LEN-1:0] cache_tags   [SET_SIZE];            // SET_SIZE¸öTAG
+    reg                    valid        [SET_SIZE];            // SET_SIZE¸övalid(ÓĞĞ§Î»)
+    reg                    dirty        [SET_SIZE];            // SET_SIZE¸ödirty(ÔàÎ»)
+    
+    wire [              2-1 :0]   word_addr;                   // ½«ÊäÈëµØÖ·addr²ğ·Ö³ÉÕâ5¸ö²¿·Ö
+    wire [  LINE_ADDR_LEN-1 :0]   line_addr;
+    wire [   SET_ADDR_LEN-1 :0]    set_addr;
+    wire [   TAG_ADDR_LEN-1 :0]    tag_addr;
+    wire [UNUSED_ADDR_LEN-1 :0] unused_addr;
+    
+    enum  {IDLE, SWAP_OUT, SWAP_IN, SWAP_IN_OK} cache_stat;    // cache ×´Ì¬»úµÄ×´Ì¬¶¨Òå
+                                                               // IDLE´ú±í¾ÍĞ÷£¬SWAP_OUT´ú±íÕıÔÚ»»³ö£¬SWAP_IN´ú±íÕıÔÚ»»Èë£¬SWAP_IN_OK´ú±í»»Èëºó½øĞĞÒ»ÖÜÆÚµÄĞ´Èëcache²Ù×÷¡£
+    
+    reg [   SET_ADDR_LEN-1 :0] mem_rd_set_addr = 0;
+    reg [   TAG_ADDR_LEN-1 :0] mem_rd_tag_addr = 0;
+    wire[   MEM_ADDR_LEN-1 :0] mem_rd_addr = {mem_rd_tag_addr, mem_rd_set_addr};
+    reg [   MEM_ADDR_LEN-1 :0] mem_wr_addr = 0;
+    
+    reg  [31:0] mem_wr_line [LINE_SIZE];
+    wire [31:0] mem_rd_line [LINE_SIZE];
+    
+    wire mem_gnt;      // Ö÷´æÏìÓ¦¶ÁĞ´µÄÎÕÊÖĞÅºÅ
+    
+    assign {unused_addr, tag_addr, set_addr, line_addr, word_addr} = addr;  // ²ğ·Ö 32bit ADDR
+    
+    reg cache_hit = 1'b0;
+    always @ (*) begin              // ÅĞ¶Ï ÊäÈëµÄaddress ÊÇ·ñÔÚ cache ÖĞÃüÖĞ
+        if( valid[set_addr] && cache_tags[set_addr] == tag_addr )   // Èç¹û cache lineÓĞĞ§£¬²¢ÇÒtagÓëÊäÈëµØÖ·ÖĞµÄtagÏàµÈ£¬ÔòÃüÖĞ
+            cache_hit = 1'b1;
+        else
+            cache_hit = 1'b0;
     end
-end
-
-wire mem_rd_req = (cache_stat == SWAP_IN );
-wire mem_wr_req = (cache_stat == SWAP_OUT);
-wire [   MEM_ADDR_LEN-1 :0] mem_addr = mem_rd_req ? mem_rd_addr : ( mem_wr_req ? mem_wr_addr : 0);
-
-assign miss = (rd_req | wr_req) & ~(cache_hit && cache_stat==IDLE) ;     // å½“ æœ‰è¯»å†™è¯·æ±‚æ—¶ï¼Œå¦‚æœcacheä¸å¤„äºå°±ç»ª(IDLE)çŠ¶æ€ï¼Œæˆ–è€…æœªå‘½ä¸­ï¼Œåˆ™miss=1
-
-main_mem #(     // ä¸»å­˜ï¼Œæ¯æ¬¡è¯»å†™ä»¥line ä¸ºå•ä½
-    .LINE_ADDR_LEN  ( LINE_ADDR_LEN          ),
-    .ADDR_LEN       ( MEM_ADDR_LEN           )
-) main_mem_instance (
-    .clk            ( clk                    ),
-    .rst            ( rst                    ),
-    .gnt            ( mem_gnt                ),
-    .addr           ( mem_addr               ),
-    .rd_req         ( mem_rd_req             ),
-    .rd_line        ( mem_rd_line            ),
-    .wr_req         ( mem_wr_req             ),
-    .wr_line        ( mem_wr_line            )
-);
+    
+    always @ (posedge clk or posedge rst) begin     // ?? cache ???
+        if(rst) begin
+            cache_stat <= IDLE;
+            for(integer i=0; i<SET_SIZE; i++) begin
+                dirty[i] = 1'b0;
+                valid[i] = 1'b0;
+            end
+            for(integer k=0; k<LINE_SIZE; k++)
+                mem_wr_line[k] <= 0;
+            mem_wr_addr <= 0;
+            {mem_rd_tag_addr, mem_rd_set_addr} <= 0;
+            rd_data <= 0;
+        end else begin
+            case(cache_stat)
+            IDLE:       begin
+                            if( cache_hit ) begin
+                                if(rd_req) begin    // Èç¹ûcacheÃüÖĞ£¬²¢ÇÒÊÇ¶ÁÇëÇó£¬
+                                    rd_data <= cache_mem[set_addr][line_addr];   //ÔòÖ±½Ó´ÓcacheÖĞÈ¡³öÒª¶ÁµÄÊı¾İ
+                                end else if(wr_req) begin // Èç¹ûcacheÃüÖĞ£¬²¢ÇÒÊÇĞ´ÇëÇó£¬
+                                    cache_mem[set_addr][line_addr] <= wr_data;   // ÔòÖ±½ÓÏòcacheÖĞĞ´ÈëÊı¾İ
+                                    dirty[set_addr] <= 1'b1;                     // Ğ´Êı¾İµÄÍ¬Ê±ÖÃÔàÎ»
+                                end 
+                            end else begin
+                                if(wr_req | rd_req) begin   // Èç¹û cache Î´ÃüÖĞ£¬²¢ÇÒÓĞ¶ÁĞ´ÇëÇó£¬ÔòĞèÒª½øĞĞ»»Èë
+                                    if( valid[set_addr] & dirty[set_addr] ) begin    // Èç¹û Òª»»ÈëµÄcache line ±¾À´ÓĞĞ§£¬ÇÒÔà£¬ÔòĞèÒªÏÈ½«Ëü»»³ö
+                                        cache_stat  <= SWAP_OUT;
+                                        mem_wr_addr <= { cache_tags[set_addr], set_addr };
+                                        mem_wr_line <= cache_mem[set_addr];
+                                    end else begin                                   // ·´Ö®£¬²»ĞèÒª»»³ö£¬Ö±½Ó»»Èë
+                                        cache_stat  <= SWAP_IN;
+                                    end
+                                    {mem_rd_tag_addr, mem_rd_set_addr} <= {tag_addr, set_addr};
+                                end
+                            end
+                        end
+            SWAP_OUT:   begin
+                            if(mem_gnt) begin           // Èç¹ûÖ÷´æÎÕÊÖĞÅºÅÓĞĞ§£¬ËµÃ÷»»³ö³É¹¦£¬Ìøµ½ÏÂÒ»×´Ì¬
+                                cache_stat <= SWAP_IN;
+                            end
+                        end
+            SWAP_IN:    begin
+                            if(mem_gnt) begin           // Èç¹ûÖ÷´æÎÕÊÖĞÅºÅÓĞĞ§£¬ËµÃ÷»»Èë³É¹¦£¬Ìøµ½ÏÂÒ»×´Ì¬
+                                cache_stat <= SWAP_IN_OK;
+                            end
+                        end
+            SWAP_IN_OK:begin           // ÉÏÒ»¸öÖÜÆÚ»»Èë³É¹¦£¬ÕâÖÜÆÚ½«Ö÷´æ¶Á³öµÄlineĞ´Èëcache£¬²¢¸üĞÂtag£¬ÖÃ¸ßvalid£¬ÖÃµÍdirty
+                            for(integer i=0; i<LINE_SIZE; i++)  cache_mem[mem_rd_set_addr][i] <= mem_rd_line[i];
+                            cache_tags[mem_rd_set_addr] <= mem_rd_tag_addr;
+                            valid     [mem_rd_set_addr] <= 1'b1;
+                            dirty     [mem_rd_set_addr] <= 1'b0;
+                            cache_stat <= IDLE;        // »Øµ½¾ÍĞ÷×´Ì¬
+                       end
+            endcase
+        end
+    end
+    
+    wire mem_rd_req = (cache_stat == SWAP_IN );
+    wire mem_wr_req = (cache_stat == SWAP_OUT);
+    wire [   MEM_ADDR_LEN-1 :0] mem_addr = mem_rd_req ? mem_rd_addr : ( mem_wr_req ? mem_wr_addr : 0);
+    
+    assign miss = (rd_req | wr_req) & ~(cache_hit && cache_stat==IDLE) ;     // µ± ÓĞ¶ÁĞ´ÇëÇóÊ±£¬Èç¹ûcache²»´¦ÓÚ¾ÍĞ÷(IDLE)×´Ì¬£¬»òÕßÎ´ÃüÖĞ£¬Ôòmiss=1
+    
+    main_mem #(     // Ö÷´æ£¬Ã¿´Î¶ÁĞ´ÒÔline Îªµ¥Î»
+        .LINE_ADDR_LEN  ( LINE_ADDR_LEN          ),
+        .ADDR_LEN       ( MEM_ADDR_LEN           )
+    ) main_mem_instance (
+        .clk            ( clk                    ),
+        .rst            ( rst                    ),
+        .gnt            ( mem_gnt                ),
+        .addr           ( mem_addr               ),
+        .rd_req         ( mem_rd_req             ),
+        .rd_line        ( mem_rd_line            ),
+        .wr_req         ( mem_wr_req             ),
+        .wr_line        ( mem_wr_line            )
+    );
 
 endmodule
 

@@ -113,39 +113,39 @@ module MWSegReg(
     reg stall_ff= 1'b0;
     reg clear_ff= 1'b0;
     reg [31:0] RD_old=32'b0;
-//    always @ (posedge clk)
-//    begin
-//        stall_ff<=~en;
-//        clear_ff<=clear;
-//        RD_old<=RD_raw;
-//    end    
-//    assign RD = stall_ff ? RD_old : (clear_ff ? 32'b0 : RD_raw );
-    always @(posedge clk) begin
-        if(rst) begin
-            stall_ff <= 0;
-            clear_ff <= 0;
-            RD_old   <= 0;
-        end
-        else begin
-            if(!en) begin
-                stall_ff <= 1;
-                clear_ff <= 0;
-                RD_old   <= RD; 
-            end
-            else if(clear) begin
-                stall_ff <= 0;
-                clear_ff <= 1;
-                RD_old   <= 0;
-            end
-            else begin
-                stall_ff <= 0;
-                clear_ff <= 0;
-                RD_old   <= 0;
-            end
-        end
-    end
+    always @ (posedge clk)
+    begin
+        stall_ff<=~en;
+        clear_ff<=clear;
+        RD_old<=RD_raw;
+    end    
+    assign RD = stall_ff ? RD_old : (clear_ff ? 32'b0 : RD_raw );
+//    always @(posedge clk) begin
+//        if(rst) begin
+//            stall_ff <= 0;
+//            clear_ff <= 0;
+//            RD_old   <= 0;
+//        end
+//        else begin
+//            if(!en) begin
+//                stall_ff <= 1;
+//                clear_ff <= 0;
+//                RD_old   <= RD; 
+//            end
+//            else if(clear) begin
+//                stall_ff <= 0;
+//                clear_ff <= 1;
+//                RD_old   <= 0;
+//            end
+//            else begin
+//                stall_ff <= 0;
+//                clear_ff <= 0;
+//                RD_old   <= 0;
+//            end
+//        end
+//    end
 
-    assign RD = (stall_ff || clear_ff)? RD_old : RD_raw;
+//    assign RD = (stall_ff || clear_ff)? RD_old : RD_raw;
 
 endmodule
 
