@@ -8,6 +8,7 @@
 //////////////////////////////////////////////////////////////////////////////////
 module MWSegReg(
     input wire clk,
+    input wire rst,
     input wire en,
     input wire clear,
     //Data Signals
@@ -62,13 +63,13 @@ module MWSegReg(
     wire [31:0] RD_raw;
     cache #(
         .LINE_ADDR_LEN  ( 3             ),
-        .SET_ADDR_LEN   ( 2             ),
+        .SET_ADDR_LEN   ( 1             ),
         .TAG_ADDR_LEN   ( 7            ),
-        .WAY_CNT        ( 3             )
+        .WAY_CNT        ( 2             )
     ) 
     cache_test_instance (
         .clk            ( clk           ),
-        .rst            ( clear         ),
+        .rst            ( rst         ),
         .miss           ( Cachemiss    ),
         .addr           ( AluOutE      ),
         .rd_req         ( MemToRegE    ),
@@ -88,9 +89,9 @@ module MWSegReg(
 //                last_addr <= AluOutMW;
 //        end
 //    end
-    wire cache_rw = (|MemWriteE) | MemToRegMW;
+    wire cache_rw = (|MemWriteE) | MemToRegE;
     always @ (posedge clk or posedge clear) begin
-        if(clear) begin
+        if(rst) begin
             hit_cnt  <= 0;
             miss_cnt <= 0;
         end else begin
@@ -112,14 +113,39 @@ module MWSegReg(
     reg stall_ff= 1'b0;
     reg clear_ff= 1'b0;
     reg [31:0] RD_old=32'b0;
-    always @ (posedge clk)
-    begin
-        stall_ff<=~en;
-        clear_ff<=clear;
+//    always @ (posedge clk)
+//    begin
+//        stall_ff<=~en;
+//        clear_ff<=clear;
 //        RD_old<=RD_raw;
-        RD_old<=RD;
-    end    
-    assign RD = stall_ff ? RD_old : (clear_ff ? 32'b0 : RD_raw );
+//    end    
+//    assign RD = stall_ff ? RD_old : (clear_ff ? 32'b0 : RD_raw );
+    always @(posedge clk) begin
+        if(rst) begin
+            stall_ff <= 0;
+            clear_ff <= 0;
+            RD_old   <= 0;
+        end
+        else begin
+            if(!en) begin
+                stall_ff <= 1;
+                clear_ff <= 0;
+                RD_old   <= RD; 
+            end
+            else if(clear) begin
+                stall_ff <= 0;
+                clear_ff <= 1;
+                RD_old   <= 0;
+            end
+            else begin
+                stall_ff <= 0;
+                clear_ff <= 0;
+                RD_old   <= 0;
+            end
+        end
+    end
+
+    assign RD = (stall_ff || clear_ff)? RD_old : RD_raw;
 
 endmodule
 

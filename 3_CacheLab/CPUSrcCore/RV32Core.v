@@ -113,6 +113,7 @@ module RV32Core(
     // ---------------------------------------------
     IDSegReg IDSegReg1(
         .clk(CPU_CLK),
+        .rst(CPU_RST),
         .clear(FlushD),
         .en(~StallD),
         .A(PCF),
@@ -225,6 +226,7 @@ module RV32Core(
     // ---------------------------------------------
     MWSegReg MWSegReg1(
         .clk(CPU_CLK),
+        .rst(CPU_RST),
         .en(~StallMW),
         .clear(FlushMW),
         .AluOutE(AluOutE),
