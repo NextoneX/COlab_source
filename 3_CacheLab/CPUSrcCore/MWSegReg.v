@@ -70,31 +70,32 @@ module MWSegReg(
         .clk            ( clk           ),
         .rst            ( clear         ),
         .miss           ( Cachemiss    ),
-        .addr           ( AluOutMW      ),
-        .rd_req         ( MemToRegMW    ),
+        .addr           ( AluOutE      ),
+        .rd_req         ( MemToRegE    ),
         .rd_data        ( RD_raw        ),
-        .wr_req         ( |MemWriteM    ),
-        .wr_data        ( StoreDataM    )
+        .wr_req         ( |MemWriteE    ),
+        .wr_data        ( ForwardData2    )
     );
         
     reg [31:0] hit_cnt = 0, miss_cnt = 0;
-    reg [31:0] last_addr = 0;
-    wire cache_rw = (|MemWriteM) | MemToRegMW;
-    always @ (posedge clk or posedge clear) begin
-        if(clear)
-            last_addr  <= 0;
-        else begin
-            if( cache_rw )
-                last_addr <= AluOutMW;
-        end
-    end
-    
+//    reg [31:0] last_addr = 0;
+//    wire cache_rw = (|MemWriteM) | MemToRegMW;
+//    always @ (posedge clk or posedge clear) begin
+//        if(clear)
+//            last_addr  <= 0;
+//        else begin
+//            if( cache_rw )
+//                last_addr <= AluOutMW;
+//        end
+//    end
+    wire cache_rw = (|MemWriteE) | MemToRegMW;
     always @ (posedge clk or posedge clear) begin
         if(clear) begin
             hit_cnt  <= 0;
             miss_cnt <= 0;
         end else begin
-            if( cache_rw & (last_addr!=AluOutMW) ) begin
+//            if( cache_rw & (last_addr!=AluOutMW) ) begin
+            if( cache_rw ) begin
                 if(Cachemiss)
                     miss_cnt <= miss_cnt+1;
                 else
@@ -115,7 +116,8 @@ module MWSegReg(
     begin
         stall_ff<=~en;
         clear_ff<=clear;
-        RD_old<=RD_raw;
+//        RD_old<=RD_raw;
+        RD_old<=RD;
     end    
     assign RD = stall_ff ? RD_old : (clear_ff ? 32'b0 : RD_raw );
 

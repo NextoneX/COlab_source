@@ -66,7 +66,7 @@ module RV32Core(
     wire [31:0] ForwardData2;
     wire [31:0] PCE;
     wire [31:0] PCMW;
-    wire [3:0] MemWriteM;
+//    wire [3:0] MemWriteM;
     wire LoadNpcMW;
     wire [31:0] DM_RD;
     wire [31:0] ResultMW;
@@ -245,7 +245,8 @@ module RV32Core(
         .WD2(CPU_Debug_DataRAM_WD2),
         .WE2(CPU_Debug_DataRAM_WE2),
         .RD2(CPU_Debug_DataRAM_RD2),
-        .MemToRegMW(MemToRegMW)
+        .MemToRegMW(MemToRegMW),
+        .Cachemiss(Cachemiss)
     );
     
     DataExt DataExt1(
