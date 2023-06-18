@@ -56,10 +56,10 @@ module MWSegReg(
         
     wire [31:0] RD_raw;
     cache #(
-        .LINE_ADDR_LEN  ( 2             ),
-        .SET_ADDR_LEN   ( 2             ),
-        .TAG_ADDR_LEN   ( 9            ),
-        .WAY_CNT        ( 3             )
+        .LINE_ADDR_LEN  ( 3             ),
+        .SET_ADDR_LEN   ( 1             ),
+        .TAG_ADDR_LEN   ( 7            ),
+        .WAY_CNT        ( 2             )
     ) 
     cache_test_instance (
         .clk            ( clk           ),
@@ -74,29 +74,35 @@ module MWSegReg(
         
     reg [31:0] hit_cnt = 0, miss_cnt = 0;
     wire cache_rw = (|MemWriteE) | MemToRegE;
-    always @ (posedge clk) begin
+    reg [31:0] last_addr = 0;   // 确保每次计数miss针对同一指令
+    always @ (posedge clk or posedge clear) begin
+        if(clear) begin
+            last_addr  <= 0;
+        end else begin
+            if( cache_rw ) begin
+                last_addr <= AluOutE;
+            end
+        end
+    end
+    always @ (posedge clk or posedge rst ) begin
         if(rst) begin
             hit_cnt  <= 0;
             miss_cnt <= 0;
         end else begin
-            if( cache_rw ) begin
+            if( cache_rw & (last_addr!=AluOutE)) begin
                 if(Cachemiss)
                     miss_cnt <= miss_cnt+1;
                 else
                     hit_cnt  <= hit_cnt +1;
             end
-            else if(clear) begin
-                hit_cnt  <= 0;
-                miss_cnt <= 0;
-            end
         end
     end
     
 
-    // �������������֧??
-    // ��� chip not enabled, �����һ�ζ�����
-    // else ��� chip clear, ��� 0
-    // else ��� values from bram
+    // 增加清除和阻塞支??
+    // 如果 chip not enabled, 输出上一次读到的
+    // else 如果 chip clear, 输出 0
+    // else 输出 values from bram
     reg stall_ff= 1'b0;
     reg clear_ff= 1'b0;
     reg [31:0] RD_old=32'b0;
@@ -110,15 +116,15 @@ module MWSegReg(
 
 endmodule
 
-//����˵��
-    //MWSegReg�ǵ��ĶμĴ�??
-    //������IDSegReg.V�ж�Bram�ĵ��ú���չ����ͬʱ������һ��ͬ����д��Bram
-    //���˴�����Ե��������ṩ�ľ�����DataRam���������Զ��ۺ�Ϊblock memory����Ҳ�������???�ĵ���xilinx��bram ip�ˣ�??
-    //������DataRam DataRamInst (
-    //    .clk    (),                      //�벹??
-    //    .wea    (),                      //�벹??
-    //    .addra  (),                      //�벹??
-    //    .dina   (),                      //�벹??
+//功能说明
+    //MWSegReg是第四段寄存??
+    //类似于IDSegReg.V中对Bram的调用和拓展，它同时包含了一个同步读写的Bram
+    //（此处你可以调用我们提供的举例：DataRam，它将会自动综合为block memory，你也可以替代???的调用xilinx的bram ip核）??
+    //举例：DataRam DataRamInst (
+    //    .clk    (),                      //请补??
+    //    .wea    (),                      //请补??
+    //    .addra  (),                      //请补??
+    //    .dina   (),                      //请补??
     //    .douta  ( RD_raw         ),
     //    .web    ( WE2            ),
     //    .addrb  ( A2[31:2]       ),
@@ -126,9 +132,9 @@ endmodule
     //    .doutb  ( RD2            )
     //    );  
 
-//ʵ��Ҫ��  
-    //ʵ��MWSegRegģ��
+//实验要求  
+    //实现MWSegReg模块
 
-//ע������
-    //���뵽DataRam��addra���ֵ�ַ��һ����32bit
-    //�����DataExtģ��ʵ�ַ��ֶ����ֽ�load
+//注意事项
+    //输入到DataRam的addra是字地址，一个字32bit
+    //请配合DataExt模块实现非字对齐字节load
