@@ -39,6 +39,7 @@ module IDSegReg(
          .dinb   ( WD2        ),
          .doutb  ( RD2        )
      );
+     
     // Add clear and stall support
     // if chip not enabled, output output last read result
     // else if chip clear, output 0
@@ -50,35 +51,9 @@ module IDSegReg(
     begin
         stall_ff<=~en;
         clear_ff<=clear;
-        RD_old<=RD_raw;
+        RD_old<=RD;
     end    
     assign RD = stall_ff ? RD_old : (clear_ff ? 32'b0 : RD_raw );
-//    always @(posedge clk) begin
-//        if(rst) begin
-//            stall_ff <= 0;
-//            clear_ff <= 0;
-//            RD_old   <= 0;
-//        end
-//        else begin
-//            if(!en) begin
-//                stall_ff <= 1;
-//                clear_ff <= 0;
-//                RD_old   <= RD; 
-//            end
-//            else if(clear) begin
-//                stall_ff <= 0;
-//                clear_ff <= 1;
-//                RD_old   <= 0;
-//            end
-//            else begin
-//                stall_ff <= 0;
-//                clear_ff <= 0;
-//                RD_old   <= 0;
-//            end
-//        end
-//    end
-
-//    assign RD = (stall_ff || clear_ff)? RD_old : RD_raw;
 
 endmodule
 

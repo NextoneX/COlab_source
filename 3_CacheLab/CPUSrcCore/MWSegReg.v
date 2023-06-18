@@ -35,15 +35,11 @@ module MWSegReg(
     output reg LoadNpcMW,
     output wire Cachemiss
     );
-    reg [31:0] StoreDataM;
-    reg [3:0] MemWriteM;
     initial begin
         AluOutMW    = 0;
         RdMW        = 5'b0;
         PCMW        = 0;
         RegWriteMW  = 3'b0;
-        MemWriteM   = 4'b0;
-        StoreDataM  = 0;
         MemToRegMW  = 1'b0;
         LoadNpcMW   = 0;
     end
@@ -53,8 +49,6 @@ module MWSegReg(
             AluOutMW   <= clear ?     0 : AluOutE;
             RdMW       <= clear ?  5'b0 : RdE;
             PCMW       <= clear ?     0 : PCE;
-            MemWriteM  <= clear ?  4'b0 : MemWriteE;
-            StoreDataM <= clear ?     0 : ForwardData2;
             RegWriteMW <= clear ?  3'b0 : RegWriteE;
             MemToRegMW <= clear ?  1'b0 : MemToRegE;
             LoadNpcMW  <= clear ?     0 : LoadNpcE;
@@ -79,23 +73,12 @@ module MWSegReg(
     );
         
     reg [31:0] hit_cnt = 0, miss_cnt = 0;
-//    reg [31:0] last_addr = 0;
-//    wire cache_rw = (|MemWriteM) | MemToRegMW;
-//    always @ (posedge clk or posedge clear) begin
-//        if(clear)
-//            last_addr  <= 0;
-//        else begin
-//            if( cache_rw )
-//                last_addr <= AluOutMW;
-//        end
-//    end
     wire cache_rw = (|MemWriteE) | MemToRegE;
     always @ (posedge clk or posedge clear) begin
         if(rst) begin
             hit_cnt  <= 0;
             miss_cnt <= 0;
         end else begin
-//            if( cache_rw & (last_addr!=AluOutMW) ) begin
             if( cache_rw ) begin
                 if(Cachemiss)
                     miss_cnt <= miss_cnt+1;
@@ -113,39 +96,13 @@ module MWSegReg(
     reg stall_ff= 1'b0;
     reg clear_ff= 1'b0;
     reg [31:0] RD_old=32'b0;
-    always @ (posedge clk)
+    assign RD = stall_ff ? RD_old : (clear_ff ? 32'b0 : RD_raw );
+    always @ (posedge clk)  
     begin
         stall_ff<=~en;
         clear_ff<=clear;
-        RD_old<=RD_raw;
+        RD_old<= RD;
     end    
-    assign RD = stall_ff ? RD_old : (clear_ff ? 32'b0 : RD_raw );
-//    always @(posedge clk) begin
-//        if(rst) begin
-//            stall_ff <= 0;
-//            clear_ff <= 0;
-//            RD_old   <= 0;
-//        end
-//        else begin
-//            if(!en) begin
-//                stall_ff <= 1;
-//                clear_ff <= 0;
-//                RD_old   <= RD; 
-//            end
-//            else if(clear) begin
-//                stall_ff <= 0;
-//                clear_ff <= 1;
-//                RD_old   <= 0;
-//            end
-//            else begin
-//                stall_ff <= 0;
-//                clear_ff <= 0;
-//                RD_old   <= 0;
-//            end
-//        end
-//    end
-
-//    assign RD = (stall_ff || clear_ff)? RD_old : RD_raw;
 
 endmodule
 
