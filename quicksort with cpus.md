@@ -1,0 +1,5 @@
+1.想要成功运行带cache的cpu,首先由于指令数据读取机制在这个lab与前两个lab的不同，运行数据和指令都是提前通过python生成内存指令内容并手动输入：
+
+ 
+
+因此也需要对cpu的IDSegReg,Hazard，以及主要是封装cache模块的MWSegReg进行修改适配。
