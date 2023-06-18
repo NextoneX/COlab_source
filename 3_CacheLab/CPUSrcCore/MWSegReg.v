@@ -56,10 +56,10 @@ module MWSegReg(
         
     wire [31:0] RD_raw;
     cache #(
-        .LINE_ADDR_LEN  ( 3             ),
-        .SET_ADDR_LEN   ( 1             ),
-        .TAG_ADDR_LEN   ( 7            ),
-        .WAY_CNT        ( 2             )
+        .LINE_ADDR_LEN  ( 2             ),
+        .SET_ADDR_LEN   ( 2             ),
+        .TAG_ADDR_LEN   ( 9            ),
+        .WAY_CNT        ( 3             )
     ) 
     cache_test_instance (
         .clk            ( clk           ),
@@ -74,7 +74,7 @@ module MWSegReg(
         
     reg [31:0] hit_cnt = 0, miss_cnt = 0;
     wire cache_rw = (|MemWriteE) | MemToRegE;
-    always @ (posedge clk or posedge clear) begin
+    always @ (posedge clk) begin
         if(rst) begin
             hit_cnt  <= 0;
             miss_cnt <= 0;
@@ -85,14 +85,18 @@ module MWSegReg(
                 else
                     hit_cnt  <= hit_cnt +1;
             end
+            else if(clear) begin
+                hit_cnt  <= 0;
+                miss_cnt <= 0;
+            end
         end
     end
     
 
-    // Ôö¼ÓÇå³ýºÍ×èÈûÖ§??
-    // Èç¹û chip not enabled, Êä³öÉÏÒ»´Î¶Áµ½µÄ
-    // else Èç¹û chip clear, Êä³ö 0
-    // else Êä³ö values from bram
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö§??
+    // ï¿½ï¿½ï¿½ chip not enabled, ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½Î¶ï¿½ï¿½ï¿½ï¿½ï¿½
+    // else ï¿½ï¿½ï¿½ chip clear, ï¿½ï¿½ï¿½ 0
+    // else ï¿½ï¿½ï¿½ values from bram
     reg stall_ff= 1'b0;
     reg clear_ff= 1'b0;
     reg [31:0] RD_old=32'b0;
@@ -106,15 +110,15 @@ module MWSegReg(
 
 endmodule
 
-//¹¦ÄÜËµÃ÷
-    //MWSegRegÊÇµÚËÄ¶Î¼Ä´æ??
-    //ÀàËÆÓÚIDSegReg.VÖÐ¶ÔBramµÄµ÷ÓÃºÍÍØÕ¹£¬ËüÍ¬Ê±°üº¬ÁËÒ»¸öÍ¬²½¶ÁÐ´µÄBram
-    //£¨´Ë´¦Äã¿ÉÒÔµ÷ÓÃÎÒÃÇÌá¹©µÄ¾ÙÀý£ºDataRam£¬Ëü½«»á×Ô¶¯×ÛºÏÎªblock memory£¬ÄãÒ²¿ÉÒÔÌæ´ú???µÄµ÷ÓÃxilinxµÄbram ipºË£©??
-    //¾ÙÀý£ºDataRam DataRamInst (
-    //    .clk    (),                      //Çë²¹??
-    //    .wea    (),                      //Çë²¹??
-    //    .addra  (),                      //Çë²¹??
-    //    .dina   (),                      //Çë²¹??
+//ï¿½ï¿½ï¿½ï¿½Ëµï¿½ï¿½
+    //MWSegRegï¿½Çµï¿½ï¿½Ä¶Î¼Ä´ï¿½??
+    //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½IDSegReg.Vï¿½Ð¶ï¿½Bramï¿½Äµï¿½ï¿½Ãºï¿½ï¿½ï¿½Õ¹ï¿½ï¿½ï¿½ï¿½Í¬Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½Í¬ï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½Bram
+    //ï¿½ï¿½ï¿½Ë´ï¿½ï¿½ï¿½ï¿½ï¿½Ôµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½á¹©ï¿½Ä¾ï¿½ï¿½ï¿½ï¿½ï¿½DataRamï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô¶ï¿½ï¿½Ûºï¿½Îªblock memoryï¿½ï¿½ï¿½ï¿½Ò²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½???ï¿½Äµï¿½ï¿½ï¿½xilinxï¿½ï¿½bram ipï¿½Ë£ï¿½??
+    //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½DataRam DataRamInst (
+    //    .clk    (),                      //ï¿½ë²¹??
+    //    .wea    (),                      //ï¿½ë²¹??
+    //    .addra  (),                      //ï¿½ë²¹??
+    //    .dina   (),                      //ï¿½ë²¹??
     //    .douta  ( RD_raw         ),
     //    .web    ( WE2            ),
     //    .addrb  ( A2[31:2]       ),
@@ -122,9 +126,9 @@ endmodule
     //    .doutb  ( RD2            )
     //    );  
 
-//ÊµÑéÒªÇó  
-    //ÊµÏÖMWSegRegÄ£¿é
+//Êµï¿½ï¿½Òªï¿½ï¿½  
+    //Êµï¿½ï¿½MWSegRegÄ£ï¿½ï¿½
 
-//×¢ÒâÊÂÏî
-    //ÊäÈëµ½DataRamµÄaddraÊÇ×ÖµØÖ·£¬Ò»¸ö×Ö32bit
-    //ÇëÅäºÏDataExtÄ£¿éÊµÏÖ·Ç×Ö¶ÔÆë×Ö½Úload
+//×¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    //ï¿½ï¿½ï¿½ëµ½DataRamï¿½ï¿½addraï¿½ï¿½ï¿½Öµï¿½Ö·ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½32bit
+    //ï¿½ï¿½ï¿½ï¿½ï¿½DataExtÄ£ï¿½ï¿½Êµï¿½Ö·ï¿½ï¿½Ö¶ï¿½ï¿½ï¿½ï¿½Ö½ï¿½load
